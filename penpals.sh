@@ -39,7 +39,7 @@ else
     RESPONSE+="Content-Type: text/plain\r\n"
     RESPONSE+="Connection: close\r\n"
     RESPONSE+="\r\n"
-    RESPONSE+="bad"
+    RESPONSE+="-1"
 
     # Send the response
     echo -en "$RESPONSE"
