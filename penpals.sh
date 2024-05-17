@@ -1,31 +1,22 @@
 #!/bin/bash
 
-# Generate hashings
-RANDOM_DATA=$(openssl rand -hex 16)
-PROOF=$(echo -n "$RANDOM_DATA" | sha256sum | awk '{print $1}')
-#PUBLIC_PROOF=$(echo -n "$PROOF" | sha256sum | awk '{print $1}')
-HEX_DIGITS=$(echo "$PROOF" | tr -cd '[:xdigit:]')
-HEX_SUM=1
-# Loop through each hexadecimal digit and sum them up
-for ((i = 0; i < ${#HEX_DIGITS}; i += 2)); do
-    # Extract two characters at a time
-    HEX_PAIR=${HEX_DIGITS:$i:2}
-    # Convert the hexadecimal pair to decimal and add it to the sum
-    DECIMAL=$((16#$HEX_PAIR))
-    HEX_SUM=$((HEX_SUM * (DECIMAL + 1)))
-done
+main () {
+    # Create a temporary file for the handle_request script
+    HANDLE_REQUESTS=$(mktemp /tmp/handle_request.XXXXXX)
 
-# Define the port to listen on
-PORT=8080
-
-# Create a temporary file for the handle_request script
-HANDLE_REQUESTS=$(mktemp /tmp/handle_request.XXXXXX)
-
-echo "$HEX_SUM" > /tmp/hexSum
-
-# Write the handle_request function to the temporary file
-cat << 'EOF' > "$HANDLE_REQUESTS"
+    # Write the handle_request function to the temporary file
+    cat << 'EOF' > "$HANDLE_REQUESTS"
 #!/bin/bash
+
+PARENT_PID=$PPID
+
+shutdown() {
+    kill -TERM $PARENT_PID
+    exit 0
+}
+
+# Trap signals
+trap shutdown SIGTERM
 
 # Read the request from stdin
 read -r REQUEST
@@ -41,6 +32,7 @@ if [[ $REQUEST =~ ^GET ]]; then
 
     # Send the response
     echo -en "$RESPONSE"
+    shutdown
 else
     # Respond with a 400 Bad Request for any non-GET requests
     RESPONSE="HTTP/1.1 400 Bad Request\r\n"
@@ -54,17 +46,41 @@ else
 fi
 EOF
 
-# Make the temporary script executable
-chmod +x "$HANDLE_REQUESTS"
+    # Make the temporary script executable
+    chmod +x "$HANDLE_REQUESTS"
 
-echo "https://airtable.com/apppJsMZ2MAT6iLkN/shr8pabyEDG9vBryN?prefill_Proof=$PROOF" > /tmp/claim
+    # Generate proofs
+    RANDOM_DATA=$(openssl rand -hex 16)
+    PROOF=$(echo -n "$RANDOM_DATA" | sha256sum | awk '{print $1}')
+    #PUBLIC_PROOF=$(echo -n "$PROOF" | sha256sum | awk '{print $1}')
+    HEX_DIGITS=$(echo "$PROOF" | tr -cd '[:xdigit:]')
+    HEX_SUM=1
+    # Loop through each hexadecimal digit and sum them up
+    for ((i = 0; i < ${#HEX_DIGITS}; i += 2)); do
+        # Extract two characters at a time
+        HEX_PAIR=${HEX_DIGITS:$i:2}
+        # Convert the hexadecimal pair to decimal and add it to the sum
+        DECIMAL=$((16#$HEX_PAIR))
+        HEX_SUM=$((HEX_SUM * (DECIMAL + 1)))
+    done
 
-# Generate form
-EXTERNAL_IP=$(curl -s ifconfig.me/ip)
-echo "https://airtable.com/apppJsMZ2MAT6iLkN/shrMGGBajfUIdGjJe?prefill_URL=$EXTERNAL_IP:$PORT&prefill_HexSum=$HEX_SUM&prefill_Proof=$PROOF"
+    echo "$HEX_SUM" > /tmp/hexSum
 
-# Use socat to listen on the specified port and handle requests
-socat TCP-LISTEN:"$PORT",reuseaddr,fork EXEC:"$HANDLE_REQUESTS"
+    echo "https://airtable.com/apppJsMZ2MAT6iLkN/shr8pabyEDG9vBryN?prefill_Proof=$PROOF" > /tmp/proof
 
-# Clean up the temporary script on exit
-trap "rm -f $HANDLE_REQUESTS" EXIT
+    # Generate form
+    EXTERNAL_IP=$(curl -s ifconfig.me/ip)
+    echo "https://airtable.com/apppJsMZ2MAT6iLkN/shrMGGBajfUIdGjJe?prefill_URL=$EXTERNAL_IP:$PORT&prefill_HexSum=$HEX_SUM&prefill_Proof=$PROOF"
+
+    # Define the port to listen on
+    PORT=8080
+
+    # Use socat to listen on the specified port and handle requests
+    socat TCP-LISTEN:"$PORT",reuseaddr,fork EXEC:"$HANDLE_REQUESTS"
+    # @TODO shut this down after verification
+
+    # Clean up the temporary script on exit
+    trap "rm -f $HANDLE_REQUESTS" EXIT
+}
+
+main

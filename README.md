@@ -37,13 +37,13 @@ curl -o- https://raw.githubusercontent.com/hypercrowd/penpals/v1.0.0/penpals.sh 
 
 The PenPal Verifier does the following:
 
-* Generates a proof for the peneration tester to get.  This proof is used to prove the tester was succcessful
+* Generates a proof for the peneration tester to get.  This proof is used to prove the tester was succcessful.  This proof will be stored in `/tmp/proof`
 * Runs a simple HTTP server using `socat` to verify that you own the machine.  We will communicate with this server to verify you have access to the machine.  The HTTP server will shut down after we complete verification.
 * Generates a link for you to put your machine onto [the marketplace](https://airtable.com/apppJsMZ2MAT6iLkN/shrXaJPGtOLDB7jRM/tblwVDav3AGPbYY7B)
 
-3. A penetration tester will take on jobs in [the marketplace](https://airtable.com/apppJsMZ2MAT6iLkN/shrXaJPGtOLDB7jRM/tblwVDav3AGPbYY7B) and will try to successfully get access to the generated proof
+3. A penetration tester will take on jobs in [the marketplace](https://airtable.com/apppJsMZ2MAT6iLkN/shrXaJPGtOLDB7jRM/tblwVDav3AGPbYY7B) and will try to get access to `/tmp/proof`
 
-4. The proof will have a link the tester uses to prove they penetrated the system.  They will then submit their email address and how they penetrated the system.
+4. `/tmp/proof` will have a link the tester uses to prove they penetrated the system.  They will then submit their email address and how they penetrated the system.
 
 5. You pay to get access to how they penetrated the system.
 
