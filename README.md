@@ -29,7 +29,7 @@ sudo emerge net-misc/socat
 sudo apk add socat 
 ```
 
-2. Install the PenPal Verifier
+2. Install the PenPal Verifier and make sure port 8080 is publically accessible
 
 ```
 curl -o- https://raw.githubusercontent.com/hypercrowd/penpals/v1.0.0/penpals.sh | bash
